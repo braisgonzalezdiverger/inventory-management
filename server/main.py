@@ -80,6 +80,7 @@ class Order(BaseModel):
     actual_delivery: Optional[str] = None
     warehouse: Optional[str] = None
     category: Optional[str] = None
+    source: Optional[str] = None
 
 class DemandForecast(BaseModel):
     id: str
@@ -111,6 +112,17 @@ class PurchaseOrder(BaseModel):
     status: str
     created_date: str
     notes: Optional[str] = None
+
+class CreateOrderRequest(BaseModel):
+    order_number: str
+    customer: str
+    items: List[dict]
+    status: str
+    order_date: str
+    expected_delivery: str
+    warehouse: Optional[str] = None
+    category: Optional[str] = None
+    source: Optional[str] = None
 
 class CreatePurchaseOrderRequest(BaseModel):
     backlog_item_id: str
@@ -160,6 +172,20 @@ def get_order(order_id: str):
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
+
+@app.post("/api/orders", response_model=Order, status_code=201)
+def create_order(request: CreateOrderRequest):
+    """Create a new order (e.g. a restocking order submitted from the Restocking tab)"""
+    new_id = str(max(int(o["id"]) for o in orders) + 1)
+    total_value = sum(item["quantity"] * item["unit_price"] for item in request.items)
+    new_order = {
+        "id": new_id,
+        **request.model_dump(),
+        "total_value": total_value,
+        "actual_delivery": None,
+    }
+    orders.append(new_order)
+    return new_order
 
 @app.get("/api/demand", response_model=List[DemandForecast])
 def get_demand_forecasts():
