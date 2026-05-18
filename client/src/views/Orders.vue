@@ -8,6 +8,39 @@
     <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
+      <div v-if="submittedOrders.length > 0" class="card submitted-section">
+        <div class="card-header">
+          <h3 class="card-title">Submitted Restocking Orders</h3>
+          <span class="badge info">{{ submittedOrders.length }} order{{ submittedOrders.length !== 1 ? 's' : '' }}</span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Items</th>
+                <th>Total Value</th>
+                <th>Submitted</th>
+                <th>Expected Delivery</th>
+                <th>Lead Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in submittedOrders" :key="order.id">
+                <td><strong>{{ order.order_number }}</strong></td>
+                <td>{{ order.items.length }} item{{ order.items.length !== 1 ? 's' : '' }}</td>
+                <td><strong>{{ currencySymbol }}{{ order.total_value.toLocaleString() }}</strong></td>
+                <td>{{ formatDate(order.order_date) }}</td>
+                <td>{{ formatDate(order.expected_delivery) }}</td>
+                <td>{{ formatLeadTime(order.order_date, order.expected_delivery) }}</td>
+                <td><span :class="['badge', getOrderStatusClass(order.status)]">{{ order.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="stats-grid">
         <div class="stat-card success">
           <div class="stat-label">{{ t('status.delivered') }}</div>
@@ -29,7 +62,7 @@
 
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">{{ t('orders.allOrders') }} ({{ orders.length }})</h3>
+          <h3 class="card-title">{{ t('orders.allOrders') }} ({{ regularOrders.length }})</h3>
         </div>
         <div class="table-container">
           <table class="orders-table">
@@ -45,7 +78,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="order in orders" :key="order.id">
+              <tr v-for="order in regularOrders" :key="order.id">
                 <td class="col-order-number"><strong>{{ order.order_number }}</strong></td>
                 <td class="col-customer">{{ translateCustomerName(order.customer) }}</td>
                 <td class="col-items">
@@ -94,7 +127,14 @@ export default {
     })
     const loading = ref(true)
     const error = ref(null)
-    const orders = ref([])
+    const allOrders = ref([])
+
+    const submittedOrders = computed(() =>
+      allOrders.value.filter(o => o.source === 'restocking')
+    )
+    const regularOrders = computed(() =>
+      allOrders.value.filter(o => o.source !== 'restocking')
+    )
 
     // Use shared filters
     const {
@@ -112,7 +152,7 @@ export default {
         const fetchedOrders = await api.getOrders(filters)
 
         // Sort orders by order_date (earliest first)
-        orders.value = fetchedOrders.sort((a, b) => {
+        allOrders.value = fetchedOrders.sort((a, b) => {
           const dateA = new Date(a.order_date)
           const dateB = new Date(b.order_date)
           return dateA - dateB
@@ -130,7 +170,12 @@ export default {
     })
 
     const getOrdersByStatus = (status) => {
-      return orders.value.filter(order => order.status === status)
+      return regularOrders.value.filter(order => order.status === status)
+    }
+
+    const formatLeadTime = (orderDate, deliveryDate) => {
+      const days = Math.round((new Date(deliveryDate) - new Date(orderDate)) / 86400000)
+      return `${days} day${days !== 1 ? 's' : ''}`
     }
 
     const getOrderStatusClass = (status) => {
@@ -159,10 +204,12 @@ export default {
       t,
       loading,
       error,
-      orders,
+      submittedOrders,
+      regularOrders,
       getOrdersByStatus,
       getOrderStatusClass,
       formatDate,
+      formatLeadTime,
       currencySymbol,
       translateProductName,
       translateCustomerName

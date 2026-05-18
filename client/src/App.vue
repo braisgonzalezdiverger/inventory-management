@@ -25,6 +25,9 @@
           <router-link to="/reports" :class="{ active: $route.path === '/reports' }">
             Reports
           </router-link>
+          <router-link to="/restocking" :class="{ active: $route.path === '/restocking' }">
+            Restocking
+          </router-link>
         </nav>
         <LanguageSwitcher />
         <ProfileMenu
@@ -211,7 +214,7 @@ body {
 
 .logo {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.75rem;
 }
 
@@ -228,6 +231,7 @@ body {
   font-weight: 400;
   padding-left: 0.75rem;
   border-left: 1px solid #e2e8f0;
+  white-space: nowrap;
 }
 
 .nav-tabs {
@@ -236,14 +240,15 @@ body {
 }
 
 .nav-tabs a {
-  padding: 0.625rem 1.25rem;
+  padding: 0.625rem 1rem;
   color: #64748b;
   text-decoration: none;
   font-weight: 500;
-  font-size: 0.938rem;
+  font-size: 0.875rem;
   border-radius: 6px;
   transition: all 0.2s ease;
   position: relative;
+  white-space: nowrap;
 }
 
 .nav-tabs a:hover {
